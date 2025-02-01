@@ -1,0 +1,52 @@
+        AREA    Timing_Code, CODE, READONLY
+        ALIGN
+        THUMB
+        EXPORT  Systick_Start_asm
+        EXPORT  Systick_Stop_asm
+		EXPORT	SysTick_Handler ; When the correct time comes,
+									; remove this from the comments.
+		EXTERN	ticks
+
+SysTick_Handler FUNCTION
+		PUSH	{R0-R1, LR} ; You should only increment ticks here.
+		LDR R0, =ticks ; Load ticks address into R0
+		LDR R1, [R0] ; Load ticks address value to R1
+		ADDS R1, R1, #1 ; ticks = ticks + 1
+		STR R1, [R0] ; Write ticks value
+		POP		{R0-R1, PC} ; Return from function
+		ENDFUNC
+
+Systick_Start_asm FUNCTION
+		PUSH	{R0-R2, LR} ; You should initialize SysTick here.
+		LDR R0, =ticks ; Load ticks address into R0
+		MOVS R1, #0 ; Move 0 to R1
+		STR R1, [R0] ; ticks address value is 0
+		LDR R0, =0xE000E014 ; Load address of Sysctick load register
+        MOVS R1, #249 ; 25MHz/100000(10us) - 1
+		STR R1, [R0] ; Write reload value 
+		LDR R0, =0xE000E018 ; Load address of Systick current value register
+		MOVS R1, #0 ;systick->val = 0
+		STR R1, [R0] ; Write 0 to Systick current value register
+		LDR R0, =0xE000E010 ; Load address of Systick ctrl register
+		LDR R1, [R0] ; Load ctrl and status register
+		MOVS R2, #7 ; Mov 7 to R2
+		ORRS R1, R1, R2 ; Enable Systick, Enable Tickint, Enable CLKSOURCE
+		STR R1, [R0] ; Write ctrl and status register
+		POP		{R0-R2, PC} ; Return from function
+		ENDFUNC
+
+Systick_Stop_asm FUNCTION
+		PUSH	{R1-R2, LR} ; You should stop SysTick, zero the ticks, ; and return "non-zero value of ticks".
+		LDR R0, =0xE000E010 ; Load address of Systick ctrl register
+		LDR R1, [R0] ; Load R0's address value to R1
+		LDR R2, =0xFFFFFFFC ; Load this value to R2 for bit clear
+		ANDS R1, R1, R2 ; R1's first and second bit are 0 
+		STR R1, [R0] ; Write R1's value to R0 so tickint and enable bit are 0 now
+		LDR R1, =ticks ; Load ticks address into R1
+		LDR R0, [R1] ; Load R1's address value to R0
+		MOVS R2, #0 ; Load 0 to R2 
+		STR R2, [R1] ; Write ticks value
+		POP		{R1-R2, PC} ; Return from function
+		ENDFUNC
+
+		END

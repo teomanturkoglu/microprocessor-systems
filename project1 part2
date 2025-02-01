@@ -1,0 +1,102 @@
+;Teoman Türkoğlu, 150200095
+;if i don't use LSLS and LSRS, i get hard fault handler error.
+
+;part2
+Size   EQU	0x0C						
+W_capacity EQU 50
+
+        AREA    My_Array, DATA, READWRITE
+		ALIGN
+profit_array DCD     60, 100, 120
+profit_end
+weight_array DCD     10, 20, 30
+weight_end
+dp_array    SPACE   4 * W_capacity
+dp_end
+
+        AREA    Recursive, CODE, READONLY       
+        ENTRY
+        THUMB
+        ALIGN 
+__main  FUNCTION
+        EXPORT __main
+            
+        MOVS R5, #Size ;R5 = SIZE
+        MOVS R0, #0 ;R0 = 0
+        LDR R3, =dp_array ;R3 = dp[]
+        LDR R1, =profit_array ;R1 = profit[]
+        LDR R2, =weight_array ;R2 = weight[]
+        MOVS R4, #W_capacity ;R4 = W_capacity
+        BL knapsack ;call knapsack function
+stop    B stop ;while(1)
+
+knapsack 
+        ADDS R5, R5, #4 ;R5 = n+1
+        PUSH {LR} ;save link register
+        PUSH {R0-R7} ;save R0 - R7
+        MOVS R6, #4 ;int i = 1
+
+loop_i
+        CMP R6, R5 ;i < n+1
+        BGE end_loop_i ;end outer loop if i >= n+1
+        SUBS R6, R6, #4 ;R6 = i-1
+        LSLS R6, R6, #2 ;multiply by 4
+        LDR R7, [R2, R6] ;R7 = weight[i-1]
+		LSRS R6, R6, #2 ;divide by 4
+        ADDS R6, R6, #4 ;R6 = i (original value)
+
+loop_w
+        CMP R4, #0 ;w >= 0
+        BLT end_loop_w ;end inner loop if w < 0
+        CMP R7, R4 ;weight[i-1] <= w
+        BGT skip ;skip if weight[i-1] > w
+        LSLS R4, R4, #2 ;multiply by 4
+        LDR R0, [R3, R4] ;R0 = dp[w]
+		LSRS R4, R4, #2 ;divide by 4
+        SUBS R4, R4, R7 ;R4 = w - weight[i-1]
+        LSLS R4, R4, #2 ;multiply by 4
+        LDR R2, [R3, R4] ;R2 = dp[w - weight[i-1]]
+        LSRS R4, R4, #2; divide by 4
+		ADDS R4, R4, R7 ;R4 = w (original value)
+        SUBS R6, R6, #4 ;R6 = i - 1
+        LDR R1, [R1, R6] ;R1 = profit[i-1]
+		ADDS R6, R6, #4 ;R6 = i (original value)
+        ADDS R2, R2, R1 ;R2 = dp[w - weight[i-1]] + profit[i-1]
+        PUSH {R0, R2} ;save R0, R2
+        BL max ;call max function
+        POP {R0, R2} ;restore R0, R2
+        LSLS R4, R4, #2 ;multiply by 4
+        STR R0, [R3, R4] ;R0 = dp[w]
+		LSRS R4, R4, #2 ;divide by 4
+
+skip
+        SUBS R4, R4, #4 ;w = w - 1
+        B loop_w ;repeat inner loop
+
+end_loop_w
+        ADDS R6, R6, #4 ;i = i + 1
+        B loop_i ;repeat outer loop
+
+end_loop_i
+        LSLS R4, R4, #2 ;multiply by 4
+        LDR R0, [R3, R4] ;R0 = dp[W]
+		LSRS R4, R4, #2 ;divide by 4
+        POP {R0-R7} ;restore R4 - R7
+        POP {PC} ;restore link register
+        BX LR ;return from function
+
+max 
+        CMP R0, R2 ;a > b
+        BGT ret ;if a>b keep a in R0
+        LDR R0, [R2] ;if b>a move b to R0
+        BX LR ;return from function
+ret
+
+        LDR R0, [R0] ;R0 = dp[w]
+
+        BX LR ;return from function
+		
+		
+		ALIGN
+		ENDFUNC
+		END

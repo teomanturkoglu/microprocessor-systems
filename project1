@@ -1,0 +1,79 @@
+;part1
+;TEOMAN TÜRKOGLU 150200095
+Size   EQU	0x0C							;Array size = 40
+W_capacity EQU 50
+
+		AREA    My_Array, DATA, READWRITE
+
+profit_array DCD     60, 100, 120	
+profit_end
+weight_array DCD     10, 20, 30
+weight_end
+value       DCD     0
+
+		AREA    Recursive, CODE, READONLY		
+		ENTRY
+		THUMB
+		ALIGN 
+__main	FUNCTION
+		EXPORT __main
+			
+
+		MOVS R3, #Size 
+		MOVS R0, #0
+		LDR R1, =profit_array ;start address
+		LDR R2, =weight_array ;start adress
+		MOVS R4, #W_capacity ;50
+		
+		BL knapsack_recursive ;value at R0
+stop    B stop	;infinite loop
+		
+		
+max
+		CMP R7, R6 	; a>b?
+		BGT ret ;if a>b call ret function
+		LDR R0, [R6] ; load a 
+		
+ret
+		LDR R0, [R7] ;load b
+		BX LR
+		
+knapsack_recursive
+
+		PUSH {LR} ;save address
+		CMP R3, #0 ;n==0?
+		BEQ knapsack_base_case ;if n==0, call this function
+		CMP R4, #0 ;w==0?
+		BEQ knapsack_base_case ;if w==0, call this function
+		
+		PUSH{R0-R7} ;save address
+		SUBS R3, R3, #4 ;n-1
+		LDR R5, [R2, R3] ;weight[n-1] 
+		CMP R5, R4 ;weight[n-1]>w ??
+		BGT knapsack_recursive ;if weight[n-1]>w call knapsack recursion
+		BLE els ;if not call els function
+		
+els
+		BL knapsack_recursive ;call knapsack recursion (W,n-1)
+		LDR R7, [R0] ;save R0 value
+		LDR R6, [R1, R3] ;profit[n-1]
+		SUBS R4, R4, R5 ; W-weight[n-1]
+		BL knapsack_recursive ;call knapsack recursion (W-weight[n-1], n-1)
+		ADDS R6, R0, R6 ;profit[n-1] + knapsack(W-weight[n-1], n-1)
+		PUSH{R0-R7} ;save address
+		BL max ;call max function
+		POP{R0-R7} ;restore address
+		B end_recursion ;call end function
+		
+end_recursion
+		POP{R0-R7} ;restore address
+		POP{PC} ;restore address
+		BX LR ;return from function
+		
+knapsack_base_case
+		MOVS R0, #0 
+		BX LR
+
+		ALIGN
+		ENDFUNC
+		END

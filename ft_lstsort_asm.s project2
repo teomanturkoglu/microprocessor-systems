@@ -1,0 +1,54 @@
+; Function: ft_lstsort_asm
+; Parameters:
+;   R0 - Pointer to the list (address of t_list *)
+;   R1 - Pointer to comparison function (address of int (*f_comp)(int, int))
+        AREA    Sorting_Code, CODE, READONLY
+        ALIGN
+        THUMB
+        EXPORT  ft_lstsort_asm
+
+ft_lstsort_asm FUNCTION
+
+    
+    PUSH {R0-R7, LR} ; Save registers R0-R7 and the return address (LR) onto the stack
+    LDR R4, [R0] ; Load the head of the list (t_list *) into R4
+    CMP R4, #0 ; Check if the list is empty
+    BEQ end ; If the list is empty, branch to the end
+
+bubble_sort_loop
+    MOVS R6, #0 ; Initialize the swap flag 
+    MOVS R7, R4 ; Start traversing the list from the head
+
+compare_loop
+    LDR R2, [R7, #0] ; Load the current node's num value into R2 (t_list->num)
+    LDR R3, [R7, #4] ; Load the address of the next node into R3 (t_list->next)
+    CMP R3, #0 ; Check if the end of the list is reached (next node is NULL)
+    BEQ check_swaps ; If the end is reached, check if any swaps were made
+	LDR R1, [R7, #8] ; Load the num value of the next node into R1 (t_list->next->num)
+    
+    ; Call the comparison function
+	CMP R2, R1 ; Compare the current node's num (R2) with the next node's num (R1)
+	BLE next ; If the current node's num is less than or equal to the next node's num, skip the swap
+
+    ; Swap 
+    STR R1, [R7, #0] ; Store the next node's num value into the current node
+    STR R2, [R7, #8] ; Store the current node's num value into the next node
+    MOVS R6, #1 ; Set the swap flag (R6 = 1) to indicate a swap was made
+
+next
+    ADDS R7, R7, #8 ; Move to the next node (R7 = R7 + 8)
+    B compare_loop ; Repeat the comparison for the next node
+
+check_swaps
+    CMP R6, #0 ; Check if any swaps were made during the traversal
+    BEQ end ; If no swaps were made, the list is sorted, branch to end
+    B bubble_sort_loop ; Otherwise, repeat the sorting process from the start
+
+end
+    POP {R0-R7, PC} ; Restore registers R0-R7 and return to the caller
+
+
+
+		
+		ENDFUNC
+		END
